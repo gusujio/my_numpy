@@ -1,5 +1,43 @@
+# %%pycodestyle
+class Null(float):
+    def __repr__(self):
+        return 'Null'
+    def __add__(self, other):
+        return Null()
+    def __radd__(self, other):
+        return Null()
+    def __sub__(self, other):
+        return Null()
+    def __rsub__(self, other):
+        return Null()
+    def __mul__(self, other):
+        return Null()
+    def __rmul__(self, other):
+        return Null()
+    def __truediv__(self, other):
+        return Null()
+    def __rtruediv__(self, other):
+        return Null()
+    def __eq__(self, other):
+        return False
+    def __ne__(self, other):
+        return True
+    def __lt__(self, other):
+        return False
+    def __le__(self, other):
+        return False
+    def __gt__(self, other):
+        return False
+    def __ge__(self, other):
+        return False
+    
+# %%pycodestyle
 
 class Array(list):
+    
+    def __repr__(self):
+        return super().__repr__()
+
     """Сложение, когда аргумент слева"""
     def __add__(self, other):
         if isinstance(other, (int, float)):
@@ -76,7 +114,7 @@ class Array(list):
     def __getitem__(self, item):
         if type(item) != tuple:
             item = super().__getitem__(item)
-            if isinstance(item, (float, int)):
+            if isinstance(item, (float, int, str)) or item == None :
                 return item
             return Array(item)
         else:
@@ -84,22 +122,58 @@ class Array(list):
                 return Array([i[item[1]] for i in self[item[0]]])
             else:
                 while len(item) > 0:
-                    if isinstance(self, (int, float)):
+                    if isinstance(self, (int, float)) or item == None :
                         raise IndexError('Слишком много индексов для массива этого пространства')
                     self = self[item[0]]
                     item = item[1:]
                 return self
+    """Добавление функционала итерирования в цикле"""
+    def __iter__(self):
+        self.index = 0
+        return self
+    
+    def __next__(self):
+        if self.index >= len(self):
+            raise StopIteration
+        letter = self[self.index]
+        self.index += 1 
+        return letter
+
+    def __eq__(self, other):
+        if isinstance(other, (list, Array, tuple)) and len(self) == len(other):
+            mas = []
+            for i, j in zip(self, other):
+                mas += [i == j]
+            return Array(mas)
+        elif isinstance(other, (int, float, Null, str)):
+            mas = []
+            for i in self:
+                mas += [i == other]
+            return Array(mas)
+        else:
+            return super().__eq__(other)
+                
 
     """Находит min число в Array"""
     def min(self):
-        while not isinstance(self, (int, float)):
-            self = min(self)
-        return self
+        mins = float('inf')
+        for i in self:
+            if not isinstance(i, (int, float)):
+                i = Array(i).min()
+            if i < mins:
+                mins = i
+        return mins
     """Находит max число в Array"""
     def max(self):
-        while not isinstance(self, (int, float)):
-            self = max(self)
-        return self
+        maxs = float('-inf')
+        for i in self:
+            if not isinstance(i, (int, float)):
+                i = Array(i).max()
+            if i > maxs:
+                maxs = i
+        return maxs
+            
+                
     """Считает сумму всех чисел в Array"""
     def sum(self):
         sums = 0
@@ -107,16 +181,16 @@ class Array(list):
             if isinstance(i, (int, float)):
                 sums += i
             else:
-                sums += summ(i)
+                sums += Array(i).sum()
         return sums
     """Считает кол-во всех элементов в Array"""
-    def count(self):
+    def count_el(self):
         counts = 0
         for i in self:
-            if isinstance(i[0], (int, float)):
-                counts += len(i)
+            if isinstance(i, (int, float)):
+                counts += 1
             else:
-                counts += count(i)
+                counts += Array(i).count_el()
         return counts
     """Считает сумму и кол-во всех элементов в Array"""
     def sum_count(self):
@@ -136,3 +210,21 @@ class Array(list):
     def mean(self):
         s, c = self.sum_count()
         return s / c
+    
+    def std(self):
+        return (((self - self.mean()) * (self - self.mean())).sum() / self.count_el() )** 0.5
+    
+    """в оригинальном np его нет, но что бы работал pandas нужен"""
+    def dropna(self):
+        mas = []
+        for i in self:
+            if not isinstance(i, Null) and i != None:
+                mas += [i]
+        return Array(mas)
+    
+    """округляет все числа в массиве"""
+    def round(self, lens = 1):
+        mas = []
+        for i in range(len(self)):
+            mas.append(round(self[i], lens))
+        return mas
